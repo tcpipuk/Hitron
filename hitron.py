@@ -381,7 +381,8 @@ class Hitron:
 # If called from CLI, parse arguments and follow them
 if __name__ == "__main__":
   # Handle input and provide help function
-  import argparse
+  import argparse, sys
+  from getpass import getpass
   parser = argparse.ArgumentParser(prog='hitronTest', description='Communicates with Hitron CGNV4 router')
   # Commands section in help
   parser_cmds = parser.add_argument_group('Commands', 'Provide one or more of these to run on the device')
@@ -398,8 +399,8 @@ if __name__ == "__main__":
   parser_opts.add_argument('--force', action='store_true', default=False, help='Forces --reboot without testing')
   parser_opts.add_argument('--retry', type=int, default=2, help='Attempts to login (default: 2)')
   parser_opts.add_argument('--verbose', action='store_true', default=False, help='Increase verbosity of other commands')
-  # Import options  
-  args = vars(parser.parse_args())
+  # Import options, output help if none provided
+  args = vars(parser.parse_args(args=None if sys.argv[1:] else ['--help']))
   # Fields to prompt for when False
   prompt_for = {
     'host': 'Hostname or IP of router: ',
@@ -407,13 +408,13 @@ if __name__ == "__main__":
     'pw': 'Password for admin account: '
   }
   # Interate through fields and prompt for missing ones
-  for field,prompt in prompt_for.items():
-    if str(field) not in args or not args[field]:
-      if field is 'pw':
-        from getpass import getpass
-        args[field] = getpass(prompt)
-      else:
-        args[field] = input(prompt)
+  if 'help' not in args:
+    for field,prompt in prompt_for.items():
+      if str(field) not in args or not args[field]:
+        if field is 'pw':
+          args[field] = getpass(prompt)
+        else:
+          args[field] = input(prompt)
   # Launch Hitron module
   router = Hitron(args['host'], args['user'], args['pw'], retry=args['retry'], times=args['verbose'])
   # Exit early if router login failed
