@@ -92,19 +92,9 @@ You can output more information about how long each command takes to run by sett
 ```
 >>> router = Hitron('ip', 'user', 'pass', times=True)
 Login completed in 1 second
+
 >>> router.ping('8.8.8.8')
 0% packet loss over 4 pings to 8.8.8.8 in 4 seconds
->>> router.rebootAndTest('8.8.8.8')
-Not logged in yet at 2 seconds
-...
-Not logged in yet at 1 minute & 59 seconds
-Logged in at 2 minutes & 2 seconds
-Failed to ping 8.8.8.8 at 2 minutes & 16 seconds
-...
-Failed to ping 8.8.8.8 at 4 minutes & 32 seconds
-GRE tunnel online at 4 minutes & 32 seconds
-0% packet loss over 4 pings to 8.8.8.8 in 6 seconds
-Successful ping to 8.8.8.8 at 4 minutes & 38 seconds
 ```
 
 ### Virgin Media Business (CGNV44-FX4)

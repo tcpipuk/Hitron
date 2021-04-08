@@ -8,7 +8,7 @@ is to support as many models as possible.
 """
 
 from datetime import datetime
-from requests import Session
+import requests
 from time import sleep
 
 __author__ = "Tom Black"
@@ -21,20 +21,27 @@ __email__ = "tom@tcpip.uk"
 __status__ = "Production"
 
 class Hitron:
-  def __init__(self, host, usr, pwd, retry=2, times=False):
+  def __init__(self, host, usr, pwd, retry=2, https=False, times=False):
     # Store variables
     self.host = host
     self.usr = usr
     self.pwd = pwd
-    # Protocol for web GUI, https is not yet tested
-    self.protocol = 'http'
+    # Disable SSL verification for HTTPS sessions
+    if https:
+      self.protocol = 'https'
+      self.session = requests.Session()
+      self.session.verify = False
+      requests.packages.urllib3.disable_warnings()
+    # No workarounds required for HTTP sessions
+    else:
+      self.protocol = 'http'
+      self.session = requests.Session()
     # Times to attempt login if it fails
     self.retry = retry
     # Whether to output time taken for each command
     self.times = times
     # Set run environment
     self.baseUrl = self.protocol + '://' + self.host + '/'
-    self.session = Session()
     self.loggedIn = False
     # Whether VMB GRE tunnel configured
     self.vmbGre = False
@@ -231,7 +238,7 @@ class Hitron:
             print('Logged in at ' + self.timediff(startTime))
           break
         # Exit early if router doesn't appear to be rebooting
-        if n > 20 and not failedOnce:
+        if n > 50 and not failedOnce:
           print("Router does not appear to be rebooting, try manually removing power to device")
           return False
       # If failed to connect, record downtime has begun
@@ -285,6 +292,15 @@ class Hitron:
   # Summary of router status
   def status(self):
     print('Device booted ' + self.uptime() + ' ago')
+    # Check DOCSIS
+    docsisStatus = self.docsisStatus()
+    if docsisStatus:
+      if docsisStatus[0]:
+        print('DOCSIS appears online, ' + docsisStatus[1])
+      else:
+        print('DOCSIS appears offline, ' + docsisStatus[1])
+    else:
+      print('Error reading DOCSIS status')
     # Output device WAN IP
     wanIp = self.sysInfo('wanIp')
     if wanIp:
@@ -397,8 +413,9 @@ if __name__ == "__main__":
   # Options section in help
   parser_opts = parser.add_argument_group('Options', 'Modify output of commands')
   parser_opts.add_argument('--force', action='store_true', default=False, help='Forces --reboot without testing')
+  parser_opts.add_argument('--https', action='store_true', default=False, help='Use HTTPS instead of default HTTP')
   parser_opts.add_argument('--retry', type=int, default=2, help='Attempts to login (default: 2)')
-  parser_opts.add_argument('--verbose', action='store_true', default=False, help='Increase verbosity of other commands')
+  parser_opts.add_argument('--verbose', action='store_true', default=True, help='Increase verbosity of other commands')
   # Import options, output help if none provided
   args = vars(parser.parse_args(args=None if sys.argv[1:] else ['--help']))
   # Fields to prompt for when False
@@ -416,7 +433,7 @@ if __name__ == "__main__":
         else:
           args[field] = input(prompt)
   # Launch Hitron module
-  router = Hitron(args['host'], args['user'], args['pw'], retry=args['retry'], times=args['verbose'])
+  router = Hitron(args['host'], args['user'], args['pw'], retry=args['retry'], https=args['https'], times=args['verbose'])
   # Exit early if router login failed
   if not router.loggedIn:
     print('Router login failed')
